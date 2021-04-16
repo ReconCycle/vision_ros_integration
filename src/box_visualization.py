@@ -22,7 +22,6 @@ def callbackReceivedMsg(msg):
     tf2Stamp.transform.translation.y = receivedCoords[1]
     tf2Stamp.transform.translation.z = 0.0
     rotationEuler = tf.transformations.quaternion_from_euler(0, 0, 0)
-    rospy.loginfo(rotationEuler)
     tf2Stamp.transform.rotation.x = rotationEuler[0]
     tf2Stamp.transform.rotation.y = rotationEuler[1]
     tf2Stamp.transform.rotation.z = rotationEuler[2]
