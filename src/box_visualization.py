@@ -1,31 +1,36 @@
 #!/usr/bin/env python
 
 import rospy
+import tf
 from tf import TransformBroadcaster
-from std_msgs.msg import Float32MultiArray
-import tf2_ros
-import geometry_msgs.msg
 from rospy import Time
+from std_msgs.msg import Float32MultiArray
+
+
+receivedCoords = (0.0, 0.0, 0.0)
+receivedEulers = (0.0, 0.0, 0.0)
+def callbackReceiveCoords(msg):
+    global receivedCoords
+    global receivedEulers
+    receivedCoords = msg.data[0:3]
+    receivedEulers = msg.data[3:]
 
 
 def moveCuboid():
     b = TransformBroadcaster()
-    translation = (0.0, 0.0, 0.0)
-    rotation = (0.0, 0.0, 0.0, 1.0)
     rate = rospy.Rate(5)
-    x, y = 0.0, 0.0
     while not rospy.is_shutdown():
-        if x >= 2:
-            x, y = 0.0, 0.0
-        x += 0.1
-        y += 0.1
-        translation = (x, y, 0.0)
-        b.sendTransform(translation, rotation, Time.now(), 'cuboid', 'panda_1/world')
+        translation = receivedCoords
+        rotation = receivedEulers
+        rotation = tf.transformations.quaternion_from_euler(rotation[0], rotation[1], rotation[2])
+        print(rotation)
+        b.sendTransform(translation, rotation, Time.now(), 'cuboid_link', 'panda_1/world')
         rate.sleep()
 
 
 if __name__ == '__main__':
-    rospy.init_node('tfBroadcaster', anonymous=True)
+    rospy.init_node('tfTest', anonymous=True)
+    sub = rospy.Subscriber('/test_coordinates', Float32MultiArray, callbackReceiveCoords)
     moveCuboid()
 
     rospy.spin()
