@@ -5,10 +5,13 @@ import tf
 from tf import TransformBroadcaster
 from rospy import Time
 from std_msgs.msg import Float32MultiArray
+import numpy as np
 
 
 receivedCoords = (0.0, 0.0, 0.0)
 receivedEulers = (0.0, 0.0, 0.0)
+cuboidZOffset = 3 
+scale = 0.01
 def callbackReceiveCoords(msg):
     global receivedCoords
     global receivedEulers
@@ -20,7 +23,7 @@ def moveCuboid():
     b = TransformBroadcaster()
     rate = rospy.Rate(5)
     while not rospy.is_shutdown():
-        translation = receivedCoords
+        translation = (receivedCoords[0], receivedCoords[1], receivedCoords[2] + cuboidZOffset * scale)       
         rotation = receivedEulers
         rotation = tf.transformations.quaternion_from_euler(rotation[0], rotation[1], rotation[2])
         print(rotation)
