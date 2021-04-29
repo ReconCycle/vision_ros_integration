@@ -49,26 +49,26 @@ def parseClassNames(string, idxClassName, idxScore, keyword):
 
     classNames = []
     for idx in range(len(idxClassName)):
-        className = string[idxClassName[idx] + len(keyword) + 4 : idxScore[idx] - 4]
+        className = string[idxClassName[idx] + len(keyword) + 2 : idxScore[idx] - 2]
         classNames.append(className)
 
     return classNames
 
-def parseCorners(string, idxCorners, idxCenter, keyword, coordOffset):
+def parseCorners(string, idxCorners, idxCenter, keyword):
     """Parse and combine raw corner values into list of tuples."""
 
     rawCorners = parseRawCoordinates(string, idxCorners, idxCenter, keyword)
     cornerCoords = []
     for i in range(len(rawCorners)/10):
         cornerCoords.append(((rawCorners[10*i], rawCorners[10*i+1]), 
-                            (rawCorners[10*i+2], rawCorners[10*i+3]),
-                            (rawCorners[10*i+4], rawCorners[10*i+5]),
-                            (rawCorners[10*i+6], rawCorners[10*i+7]),
-                            (rawCorners[10*i+8], rawCorners[10*i+9])))
+                             (rawCorners[10*i+2], rawCorners[10*i+3]),
+                             (rawCorners[10*i+4], rawCorners[10*i+5]),
+                             (rawCorners[10*i+6], rawCorners[10*i+7]),
+                             (rawCorners[10*i+8], rawCorners[10*i+9])))
 
     return cornerCoords
 
-def parseCenters(string, idxCenter, idxQuat, keyword, coordOffset):
+def parseCenters(string, idxCenter, idxQuat, keyword):
     """Parse and combine raw center values into list of tuples."""
 
     rawCenters = parseRawCoordinates(string, idxCenter, idxQuat, keyword)
