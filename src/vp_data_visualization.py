@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 import rospy
 from rospy import Time
 from std_msgs.msg import String
@@ -10,32 +11,39 @@ import vp_data_parser as parser
 
 
 # Parser variables
-keywords = ['class_name', 'score', 'obb_corners', 'obb_center', 'obb_rot_quat']
+# keywords = ['class_name', 'score', 'obb_corners', 'obb_center', 'obb_rot_quat']
 receivedString = ''
-numberOfClasses = 0
 
 freq = 100
 
+# Read node configuration parameters
+def readConfigParams():
+    keywords = rospy.get_param("/VisionPipeline/keywords")
+    colorsDict = rospy.get_param("/VisionPipeline/colors_dict")
+
+    return keywords, colorsDict
 
 # Receive message from /vision_pipeline/data topic
 def callbackReceivedData(msg):
     global receivedString
-    global numberOfClasses
     receivedString = msg.data
-    numberOfClasses = receivedString.count(keywords[0])
+
 
 # Keep track of active frames - if object is duplicated, add a number to its name.
-def trackActiveFrames(activeClasses):
+def trackActiveFramesAndColors(activeClasses):
     k = 0
     activeFrames = []
+    activeColors = []
     for activeClass in activeClasses:
+        activeColors.append(colorsDict[0][activeClass])
         if activeClass in activeFrames:
             k += 1
             activeClass = activeClass + str(k)
         k = 0
         activeFrames.append(activeClass)
+
     
-    return activeFrames
+    return activeFrames, activeColors
 
 def sendTFTransform(activeFrames, centers, quaternions):
     transformBroadcaster = TransformBroadcaster()
@@ -43,7 +51,7 @@ def sendTFTransform(activeFrames, centers, quaternions):
         translation = (centers[i][0], centers[i][1], 0)
         transformBroadcaster.sendTransform(translation, quaternions[i], Time.now(), activeFrames[i], 'panda_1/world')
 
-def prepareObjectArray(activeFrames):
+def prepareObjectArray(activeFrames, activeColors):
     markerArray = MarkerArray()
     markerArray.markers = []
     for i in range(len(activeFrames)):
@@ -60,6 +68,9 @@ def prepareObjectArray(activeFrames):
         marker.scale.x = 0.01
         marker.scale.y = 0.01
         marker.scale.z = 0.01
+        marker.color.r = activeColors[i][0]
+        marker.color.g = activeColors[i][1]
+        marker.color.b = activeColors[i][2]
         marker.color.a = 1.0
         marker.lifetime = rospy.Duration(0.01)
         markerArray.markers.append(marker)
@@ -93,11 +104,14 @@ def prepareTextArray(activeFrame):
 if __name__ == '__main__':
     rospy.init_node('vision_pipeline_data_visualization')
     rospy.loginfo('Node started')
+
+    keywords, colorsDict = readConfigParams()  
+    print(colorsDict[0]['front'])
+
     sub = rospy.Subscriber('/vision_pipeline/data', String, callbackReceivedData)
     objectArrayPub = rospy.Publisher('/visualization_marker_array', MarkerArray, queue_size = 20)
     textArrayPub = rospy.Publisher('/visualization_marker_array', MarkerArray, queue_size = 20)
     rate = rospy.Rate(freq)
-    # Keep track of all created frames.
 
     while not rospy.is_shutdown():
         cleanedString = parser.cleanString(receivedString, ['[', ']', '{', '}', '"'])
@@ -107,14 +121,12 @@ if __name__ == '__main__':
         centers = parser.parseCenters(cleanedString, idxCenter, idxQuat, keywords[3])
         quaternions = parser.parseQuaternions(cleanedString, idxQuat, idxClassName, keywords[4])
         
-        activeFrames = trackActiveFrames(activeClasses)
+        activeFrames, activeColors = trackActiveFramesAndColors(activeClasses)
         sendTFTransform(activeFrames, centers, quaternions)
-        objectArray = prepareObjectArray(activeFrames)
+        objectArray = prepareObjectArray(activeFrames, activeColors)
         textArray = prepareTextArray(activeFrames)
 
         objectArrayPub.publish(objectArray)
         textArrayPub.publish(textArray)
 
-
-        print(activeFrames)
         rate.sleep()
