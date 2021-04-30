@@ -1,0 +1,7 @@
+<launch>
+    <rosparam file="$(find vision_ros_integration)/config/vp_data_config.yaml"/>
+    <node name="vp_data_visualization" pkg="vision_ros_integration" type="vp_data_visualization.py" ns="VisionPipeline"
+          args="keywords
+                class_names
+                colors"/>
+</launch>
