@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
+import math
 from rospy import Time
 from std_msgs.msg import String
 from visualization_msgs.msg import Marker
@@ -10,11 +11,10 @@ import vp_data_parser as parser
 
 
 
-# Parser variables
-# keywords = ['class_name', 'score', 'obb_corners', 'obb_center', 'obb_rot_quat']
 receivedString = ''
-
 freq = 100
+zScale = 0.03
+textColor = (1.0, 0.0, 1.0, 1.0)
 
 # Read node configuration parameters
 def readConfigParams():
@@ -51,7 +51,16 @@ def sendTFTransform(activeFrames, centers, quaternions):
         translation = (centers[i][0], centers[i][1], 0)
         transformBroadcaster.sendTransform(translation, quaternions[i], Time.now(), activeFrames[i], 'panda_1/world')
 
-def prepareObjectArray(activeFrames, activeColors):
+def calculateObjectEdges(activeCorners):
+    activeEdges = []
+    for corners in activeCorners:
+        xEdge = math.sqrt((corners[1][0] - corners[2][0])**2 + (corners[1][1] - corners[2][1])**2)
+        yEdge = math.sqrt((corners[0][0] - corners[1][0])**2 + (corners[0][1] - corners[1][1])**2)
+        activeEdges.append((xEdge, yEdge))
+
+    return activeEdges
+
+def prepareObjectArray(activeFrames, activeColors, activeEdges):
     markerArray = MarkerArray()
     markerArray.markers = []
     for i in range(len(activeFrames)):
@@ -60,14 +69,13 @@ def prepareObjectArray(activeFrames, activeColors):
         marker.header.stamp = Time.now()
         marker.ns = activeFrames[i] + 'object'
         marker.id = i
-        marker.type = marker.MESH_RESOURCE
+        marker.type = marker.CUBE
         marker.action = marker.ADD
-        marker.mesh_resource = "package://reconcycle_description/meshes/cuboid.stl"
-        marker.pose.position.z = 0.05
+        marker.pose.position.z = zScale/2
         marker.pose.orientation.w = 1.0
-        marker.scale.x = 0.01
-        marker.scale.y = 0.01
-        marker.scale.z = 0.01
+        marker.scale.x = activeEdges[i][0]
+        marker.scale.y = activeEdges[i][1]
+        marker.scale.z = zScale
         marker.color.r = activeColors[i][0]
         marker.color.g = activeColors[i][1]
         marker.color.b = activeColors[i][2]
@@ -106,7 +114,6 @@ if __name__ == '__main__':
     rospy.loginfo('Node started')
 
     keywords, colorsDict = readConfigParams()  
-    print(colorsDict[0]['front'])
 
     sub = rospy.Subscriber('/vision_pipeline/data', String, callbackReceivedData)
     objectArrayPub = rospy.Publisher('/visualization_marker_array', MarkerArray, queue_size = 20)
@@ -120,13 +127,16 @@ if __name__ == '__main__':
         corners = parser.parseCorners(cleanedString, idxCorners, idxCenter, keywords[2])
         centers = parser.parseCenters(cleanedString, idxCenter, idxQuat, keywords[3])
         quaternions = parser.parseQuaternions(cleanedString, idxQuat, idxClassName, keywords[4])
+        activeEdges = calculateObjectEdges(corners)
         
         activeFrames, activeColors = trackActiveFramesAndColors(activeClasses)
         sendTFTransform(activeFrames, centers, quaternions)
-        objectArray = prepareObjectArray(activeFrames, activeColors)
+        objectArray = prepareObjectArray(activeFrames, activeColors, activeEdges)
         textArray = prepareTextArray(activeFrames)
 
         objectArrayPub.publish(objectArray)
         textArrayPub.publish(textArray)
+
+        print(cleanedString)
 
         rate.sleep()
