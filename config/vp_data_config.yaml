@@ -5,11 +5,12 @@ VisionPipeline:
     - obb_corners
     - obb_center
     - obb_rot_quat
-  colors_dict: 
-    - {front : [1.0, 0.0, 0.0],
-       back : [0.7, 0.0, 0.0],
-       side1 : [0.5, 0.0, 0.0],
-       side2 : [0.2, 0.0, 0.0],
-       battery : [0.0, 1.0, 0.0],
-       pcb : [0.0, 0.0, 1.0],
-       internals : [0.5, 0.0, 0.5]}
+  object_color_dict: 
+    - {front : [1.0, 0.0, 0.0, 0.5],
+       back : [0.7, 0.0, 0.0, 0.5],
+       side1 : [0.5, 0.0, 0.0, 0.5],
+       side2 : [0.2, 0.0, 0.0, 0.5],
+       battery : [0.0, 1.0, 0.0, 1.0],
+       pcb : [0.0, 0.0, 1.0, 1.0],
+       internals : [0.5, 0.0, 0.5, 1.0]}
+  
