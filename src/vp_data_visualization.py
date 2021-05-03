@@ -13,15 +13,20 @@ import vp_data_parser as parser
 
 receivedString = ''
 freq = 100
-zScale = 0.03
+objectScaleZ = 0.03
 textColor = (1.0, 0.0, 1.0, 1.0)
+textScaleZ = 0.05
+textOffsetZ = 0.15
 
 # Read node configuration parameters
 def readConfigParams():
     keywords = rospy.get_param("/VisionPipeline/keywords")
-    colorsDict = rospy.get_param("/VisionPipeline/colors_dict")
+    colorsDict = rospy.get_param("/VisionPipeline/object_color_dict")
+    # Local parameter for each camera ns.
+    cameraTf = rospy.get_param("~camera_tf")
+    cameraNs = rospy.get_param("~camera_ns")
 
-    return keywords, colorsDict
+    return keywords, colorsDict, cameraTf, cameraNs
 
 # Receive message from /vision_pipeline/data topic
 def callbackReceivedData(msg):
@@ -30,7 +35,7 @@ def callbackReceivedData(msg):
 
 
 # Keep track of active frames - if object is duplicated, add a number to its name.
-def trackActiveFramesAndColors(activeClasses):
+def trackActiveFramesAndColors(activeClasses, cameraTf):
     k = 0
     activeFrames = []
     activeColors = []
@@ -40,16 +45,16 @@ def trackActiveFramesAndColors(activeClasses):
             k += 1
             activeClass = activeClass + str(k)
         k = 0
-        activeFrames.append(activeClass)
+        activeFrames.append(activeClass + '_' + cameraTf)
 
     
     return activeFrames, activeColors
 
-def sendTFTransform(activeFrames, centers, quaternions):
+def sendTfTransform(activeFrames, centers, quaternions, cameraTf):
     transformBroadcaster = TransformBroadcaster()
     for i in range(len(activeFrames)):
         translation = (centers[i][0], centers[i][1], 0)
-        transformBroadcaster.sendTransform(translation, quaternions[i], Time.now(), activeFrames[i], 'panda_1/world')
+        transformBroadcaster.sendTransform(translation, quaternions[i], Time.now(), activeFrames[i], cameraTf)
 
 def calculateObjectEdges(activeCorners):
     activeEdges = []
@@ -71,16 +76,16 @@ def prepareObjectArray(activeFrames, activeColors, activeEdges):
         marker.id = i
         marker.type = marker.CUBE
         marker.action = marker.ADD
-        marker.pose.position.z = zScale/2
+        marker.pose.position.z = objectScaleZ / 2
         marker.pose.orientation.w = 1.0
         marker.scale.x = activeEdges[i][0]
         marker.scale.y = activeEdges[i][1]
-        marker.scale.z = zScale
+        marker.scale.z = objectScaleZ
         marker.color.r = activeColors[i][0]
         marker.color.g = activeColors[i][1]
         marker.color.b = activeColors[i][2]
-        marker.color.a = 1.0
-        marker.lifetime = rospy.Duration(0.01)
+        marker.color.a = activeColors[i][3]
+        marker.lifetime = rospy.Duration(0.008)
         markerArray.markers.append(marker)
     
     return markerArray
@@ -95,14 +100,15 @@ def prepareTextArray(activeFrame):
         marker.ns = activeFrames[i] + 'text'
         marker.id = i
         marker.type = marker.TEXT_VIEW_FACING
-        marker.scale.z = 0.05
-        marker.color.r = 1.0
-        marker.color.b = 1.0
-        marker.color.a = 1.0
-        marker.pose.position.z = 0.15
+        marker.scale.z = textScaleZ
+        marker.color.r = textColor[0]
+        marker.color.g = textColor[1]
+        marker.color.b = textColor[2]
+        marker.color.a = textColor[3]
+        marker.pose.position.z = textOffsetZ
         marker.pose.orientation.z = 1.0
         marker.text = activeFrames[i]
-        marker.lifetime = rospy.Duration(0.01)
+        marker.lifetime = rospy.Duration(0.008)
         markerArray.markers.append(marker)
 
     return markerArray
@@ -111,13 +117,13 @@ def prepareTextArray(activeFrame):
 
 if __name__ == '__main__':
     rospy.init_node('vision_pipeline_data_visualization')
-    rospy.loginfo('Node started')
 
-    keywords, colorsDict = readConfigParams()  
+    keywords, colorsDict, cameraTf, cameraNs = readConfigParams()  
 
-    sub = rospy.Subscriber('/vision_pipeline/data', String, callbackReceivedData)
+    sub = rospy.Subscriber('/vision_pipeline/data/' + cameraNs, String, callbackReceivedData)
     objectArrayPub = rospy.Publisher('/visualization_marker_array', MarkerArray, queue_size = 20)
     textArrayPub = rospy.Publisher('/visualization_marker_array', MarkerArray, queue_size = 20)
+
     rate = rospy.Rate(freq)
 
     while not rospy.is_shutdown():
@@ -129,14 +135,12 @@ if __name__ == '__main__':
         quaternions = parser.parseQuaternions(cleanedString, idxQuat, idxClassName, keywords[4])
         activeEdges = calculateObjectEdges(corners)
         
-        activeFrames, activeColors = trackActiveFramesAndColors(activeClasses)
-        sendTFTransform(activeFrames, centers, quaternions)
+        activeFrames, activeColors = trackActiveFramesAndColors(activeClasses, cameraTf)
+        sendTfTransform(activeFrames, centers, quaternions, cameraTf)
         objectArray = prepareObjectArray(activeFrames, activeColors, activeEdges)
         textArray = prepareTextArray(activeFrames)
 
         objectArrayPub.publish(objectArray)
         textArrayPub.publish(textArray)
-
-        print(cleanedString)
 
         rate.sleep()
