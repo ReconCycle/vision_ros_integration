@@ -24,7 +24,8 @@ def readConfigParams():
     colorsDict = rospy.get_param("/VisionPipeline/object_color_dict")
     # Local parameter for each camera ns.
     cameraTf = rospy.get_param("~camera_tf")
-    cameraNs = rospy.get_param("~camera_ns")
+    # Read namespace
+    cameraNs = rospy.get_namespace()
 
     return keywords, colorsDict, cameraTf, cameraNs
 
@@ -65,14 +66,14 @@ def calculateObjectEdges(activeCorners):
 
     return activeEdges
 
-def prepareObjectArray(activeFrames, activeColors, activeEdges):
+def prepareObjectArray(activeFrames, activeColors, activeEdges, cameraNs):
     markerArray = MarkerArray()
     markerArray.markers = []
     for i in range(len(activeFrames)):
         marker = Marker()
         marker.header.frame_id = activeFrames[i]
         marker.header.stamp = Time.now()
-        marker.ns = activeFrames[i] + 'object'
+        marker.ns = cameraNs + 'object'
         marker.id = i
         marker.type = marker.CUBE
         marker.action = marker.ADD
@@ -90,14 +91,14 @@ def prepareObjectArray(activeFrames, activeColors, activeEdges):
     
     return markerArray
 
-def prepareTextArray(activeFrame):
+def prepareTextArray(activeFrame, cameraNs):
     markerArray = MarkerArray()
     markerArray.markers = []
     for i in range(len(activeFrames)):
         marker = Marker()
         marker.header.frame_id = activeFrames[i]
         marker.header.stamp = Time.now()
-        marker.ns = activeFrames[i] + 'text'
+        marker.ns = cameraNs + 'text'
         marker.id = i
         marker.type = marker.TEXT_VIEW_FACING
         marker.scale.z = textScaleZ
@@ -119,8 +120,7 @@ if __name__ == '__main__':
     rospy.init_node('vision_pipeline_data_visualization')
 
     keywords, colorsDict, cameraTf, cameraNs = readConfigParams()  
-
-    sub = rospy.Subscriber('/vision_pipeline/data/' + cameraNs, String, callbackReceivedData)
+    sub = rospy.Subscriber(cameraNs + 'vision_pipeline/data', String, callbackReceivedData)
     objectArrayPub = rospy.Publisher('/visualization_marker_array', MarkerArray, queue_size = 20)
     textArrayPub = rospy.Publisher('/visualization_marker_array', MarkerArray, queue_size = 20)
 
@@ -137,8 +137,8 @@ if __name__ == '__main__':
         
         activeFrames, activeColors = trackActiveFramesAndColors(activeClasses, cameraTf)
         sendTfTransform(activeFrames, centers, quaternions, cameraTf)
-        objectArray = prepareObjectArray(activeFrames, activeColors, activeEdges)
-        textArray = prepareTextArray(activeFrames)
+        objectArray = prepareObjectArray(activeFrames, activeColors, activeEdges, cameraNs)
+        textArray = prepareTextArray(activeFrames, cameraNs)
 
         objectArrayPub.publish(objectArray)
         textArrayPub.publish(textArray)
