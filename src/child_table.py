@@ -10,7 +10,8 @@ if __name__ == '__main__':
     rospy.wait_for_service('robot_cell_visualization_service')
     addTableSrv = rospy.ServiceProxy('robot_cell_visualization_service', robot_cell_visualization)
     try:
-        resp = addTableSrv(2, 0, 'table.obj', 0)
+        # Index 0 is reserved for base table.
+        resp = addTableSrv(rospy.get_param('~childIdx'), rospy.get_param('~parentIdx'), 'table.stl', rospy.get_param('~action'))
         print(resp)
     except rospy.ServiceException as exc:
         print("Service exception: " + str(exc))
