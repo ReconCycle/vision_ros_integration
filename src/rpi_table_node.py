@@ -1,15 +1,15 @@
 #! /usr/bin/env python
+
 import rospy
 from robot_module_msgs.srv import StlFileManager
 
-tableName = ''
 
 def stlHandler(req):
-    global tableName
+    global thisTableName
     success = False
     stlFilename = ''
-    if req.tableName == tableName:
-        stlFilename = tableName
+    if req.tableName == thisTableName:
+        stlFilename = thisTableName
         success = True
     
     return stlFilename, success
@@ -19,7 +19,7 @@ def stlHandler(req):
 
 if __name__ == '__main__':
     rospy.init_node('rpi_table_node', anonymous = True)
-    tableName = rospy.get_param('~tableName')
-    stlFileService = rospy.Service('stl_file_service', StlFileManager, stlHandler)
+    thisTableName = rospy.get_param('~tableName')
+    stlFileService = rospy.Service('stl_file_service_' + thisTableName, StlFileManager, stlHandler)
 
     rospy.spin()
