@@ -1,0 +1,23 @@
+#:kivy 1.11.1
+<Controller>:
+    FloatLayout:
+        Button:
+            id: scanButton
+            text: 'Scan Network'
+            size_hint: 0.2, 0.1
+            pos_hint: {'center_x': root.scanButtonPosX, 'center_y': root.scanButtonPosY}
+            on_press: root.scanStart()
+            on_release: root.scanCompleted()
+        
+        Button:
+            id: loadButton
+            text: 'Load Configuration'
+            size_hint: 0.2, 0.1
+            pos_hint: {'center_x': root.loadButtonPosX, 'center_y': root.loadButtonPosY}
+            on_press: root.loadYaml()
+
+        
+        Label:
+            id: actionLabel
+            text: root.actionLabelText
+            pos_hint: {'center_x': root.actionLabelPosX, 'center_y': root.actionLabelPosY}
