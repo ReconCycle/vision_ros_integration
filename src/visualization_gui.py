@@ -302,9 +302,9 @@ class YamlParser():
     # Save yaml file.
     def saveYamlFile(self, _):
         self.popup.dismiss()
-        yamlFileName = self.popupTextInput.text
+        yamlFileName = '/ros_ws/src/vision_ros_integration/config/cell_config/' + self.popupTextInput.text
         self.popupTextInput.text = ''
-        with open(yamlFileName + '.yaml', 'w') as outputFile:
+        with open(str(yamlFileName) + '.yaml', 'w') as outputFile:
             yaml.dump(tablesDict, outputFile, default_flow_style = False)
 
     # Open popup for loading yaml file.
@@ -326,7 +326,7 @@ class YamlParser():
         global tablesDict
 
         self.popup.dismiss()
-        yamlFileName = self.popupTextInput.text
+        yamlFileName = '/ros_ws/src/vision_ros_integration/config/cell_config/' + self.popupTextInput.text
         self.popupTextInput.text = ''
         try:
             tablesDict = yaml.load(file(yamlFileName + '.yaml', 'r'))
