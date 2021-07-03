@@ -1,13 +1,13 @@
 <launch>
     <node pkg="rviz" type="rviz" name="empty_rviz" args="-d $(find reconcycle_description)/rviz/empty_config.rviz"/>
-    <node name="cell_manager" pkg="vision_ros_integration" type="cell_layout_manager.py"/>
+    <node name="cell_manager" pkg="vision_ros_integration" type="visualization_gui.py"/>
     <!-- Add base table -->
-    <node name="table_node" pkg="vision_ros_integration" type="table_node.py">
+    <!-- <node name="table_node" pkg="vision_ros_integration" type="table_node.py">
         <param name="childName" value="base_table"/>
         <param name="childSwitch" value="none"/>
         <param name="parentName" value="world"/>
         <param name="parentSwitch" value="none"/>
         <param name="stlFile" value="table.stl"/>
         <param name="action" value="add"/>
-    </node>
+    </node> -->
 </launch>
