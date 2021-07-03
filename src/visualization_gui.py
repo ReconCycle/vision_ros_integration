@@ -13,9 +13,12 @@ from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
 from kivy.core.window import Window
 from kivy.uix.checkbox import CheckBox
+from visualization_msgs.msg import Marker
 import os
 import socket
 import yaml
+import tf
+
 
 # Global variables
 global tablesDict
@@ -38,8 +41,11 @@ class NetworkScanner():
     def getHostname(self, ips):
         availableHostNames = []
         for ip in ips:
-            availableHostNames.append(socket.gethostbyaddr(ip)[0])
-        return availableHostNames
+            try:
+                availableHostNames.append(socket.gethostbyaddr(ip)[0])
+                return availableHostNames
+            except:
+                return 0
 
 # Widget classes.
 class ScrollBar(ScrollView):
@@ -276,7 +282,6 @@ class InnerLayout(GridLayout):
             for widget in widgetTuple:
                 self.remove_widget(widget)
 
-
 class YamlParser():
 
     def __init__(self):
@@ -302,9 +307,9 @@ class YamlParser():
     # Save yaml file.
     def saveYamlFile(self, _):
         self.popup.dismiss()
-        yamlFileName = self.popupTextInput.text
+        yamlFileName = '/ros_ws/src/vision_ros_integration/config/cell_config/' + self.popupTextInput.text
         self.popupTextInput.text = ''
-        with open(yamlFileName + '.yaml', 'w') as outputFile:
+        with open(str(yamlFileName) + '.yaml', 'w') as outputFile:
             yaml.dump(tablesDict, outputFile, default_flow_style = False)
 
     # Open popup for loading yaml file.
@@ -326,7 +331,7 @@ class YamlParser():
         global tablesDict
 
         self.popup.dismiss()
-        yamlFileName = self.popupTextInput.text
+        yamlFileName = '/ros_ws/src/vision_ros_integration/config/cell_config/' + self.popupTextInput.text
         self.popupTextInput.text = ''
         try:
             tablesDict = yaml.load(file(yamlFileName + '.yaml', 'r'))
@@ -337,6 +342,10 @@ class YamlParser():
             fileAlertPopup = PopupWindow('Alert Window', alertContent)
             fileAlertPopup.open()
 
+class RvizVisualization():
+    def __init__(self):
+        self.transformBroadcaster = tf.TransformBroadcaster()
+        self.transformListener = tf.TransformListener()
 
 class Controller(FloatLayout):
 
