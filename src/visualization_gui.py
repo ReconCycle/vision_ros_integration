@@ -17,10 +17,10 @@ import os
 import socket
 import yaml
 
-# import rospy
-# from rospy import Time
-# from visualization_msgs.msg import Marker
-# import tf
+import rospy
+from rospy import Time
+from visualization_msgs.msg import Marker
+import tf
 
 
 # Global variables
@@ -109,8 +109,8 @@ class InputValidator():
 
         for tableName in tablesNames:
             if tableName in textInput.id and len(tableName) == len(textInput.id) - 2:
-
                 if self.validateInput(textInput.text):
+
                     if '_x' in textInput.id:
                         tablesDict[tableName][0] = {'x': int(textInput.text)}
                     if '_y' in textInput.id:
@@ -371,7 +371,62 @@ class YamlParser():
 class RvizVisualization():
     def __init__(self):
         self.transformBroadcaster = tf.TransformBroadcaster()
-        self.transformListener = tf.TransformListener()
+        self.markerPublisher = rospy.Publisher('/visualization_marker', Marker, queue_size = 10)
+        self.tableWidth = 0.6
+    
+    def visualizeTables(self, _):
+        global tablesDict
+        global tablesNames
+
+        self.refreshMarkers()
+        for tableName in tablesNames:
+            self.sendTransformation(tableName)
+            self.drawTableMarker(tableName)
+
+    def sendTransformation(self, tableName):
+        try:
+            x = tablesDict[tableName][0]['x']
+        except:
+            x = 0
+        try:
+            y = tablesDict[tableName][1]['y']
+        except:
+            y = 0
+        try:
+            r = tablesDict[tableName][2]['r']
+        except:
+            r = 0
+        translation = (x * self.tableWidth, y * self.tableWidth, 0.0)
+        eulers = (0.0, 0.0, r)
+        quaternions = tf.transformations.quaternion_from_euler(eulers[0], eulers[1], eulers[2])
+        self.transformBroadcaster.sendTransform(translation, quaternions, Time.now(), tableName, 'world')
+
+    def drawTableMarker(self, tableName):
+        global tablesDict
+
+        marker = Marker()
+        marker.header.frame_id = tableName
+        marker.header.stamp = Time.now()
+        marker.ns = tableName
+        marker.id = 1
+        marker.type = marker.MESH_RESOURCE
+        try:
+            marker.mesh_resource = 'package://reconcycle_description/meshes/' + tablesDict[tableName][3]['stl'] + '.stl'
+        except:
+            marker.mesh_resource = 'package://reconcycle_description/meshes/table.stl'
+        marker.mesh_use_embedded_materials = True
+        marker.action = marker.ADD
+        marker.scale.x = 0.001
+        marker.scale.y = 0.001
+        marker.scale.z = 0.001
+        marker.pose.orientation.x = 1.0
+        marker.pose.orientation.w = 1.0
+        self.markerPublisher.publish(marker)
+    
+    def refreshMarkers(self):
+        marker = Marker()
+        marker.action = marker.DELETEALL
+        self.markerPublisher.publish(marker)
 
 class Controller(FloatLayout):
 
@@ -390,6 +445,7 @@ class Controller(FloatLayout):
         self.innerLayout = InnerLayout()
         self.yamlParser = YamlParser()
         self.inputValidator = InputValidator()
+        self.rvizVizualization = RvizVisualization()
 
     # Method called when button 'Scan' is pressed.
     def scanStart(self):
@@ -434,6 +490,7 @@ class Controller(FloatLayout):
         createYamlButton = AddButton('createYamlButton', 'Create Yaml File', (0.7, 0.05), (0.2, 0.1), (0, 0))
         createYamlButton.bind(on_press = self.yamlParser.openSaveYamlPopup)
         visualizeRvizButton = AddButton('visualizeRvizButton', 'Rviz', (0.9, 0.05), (0.2, 0.1), (0, 0))
+        visualizeRvizButton.bind(on_press = self.rvizVizualization.visualizeTables)
         self.add_widget(addTableButton)
         self.add_widget(removeTableButton)
         self.add_widget(createYamlButton)
@@ -454,4 +511,5 @@ class GuiApp(App):
 
 
 if __name__ == '__main__':
+    rospy.init_node('visualization_gui_node')
     GuiApp().run()
