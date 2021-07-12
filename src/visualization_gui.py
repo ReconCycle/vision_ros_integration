@@ -13,11 +13,14 @@ from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
 from kivy.core.window import Window
 from kivy.uix.checkbox import CheckBox
-from visualization_msgs.msg import Marker
 import os
 import socket
 import yaml
-import tf
+
+# import rospy
+# from rospy import Time
+# from visualization_msgs.msg import Marker
+# import tf
 
 
 # Global variables
@@ -98,8 +101,9 @@ class Checkbox(CheckBox):
 
 # Class for text input validation and writing into dict.
 class InputValidator():
+
     # Write into dict if text is valid or show popup if it's not.
-    def onTextValidation(self, textInput):
+    def onXyrTextValidation(self, textInput):
         global tablesNames
         global tablesDict
 
@@ -160,9 +164,9 @@ class InnerLayout(GridLayout):
             stlFilenameInput = TextInput(tableName + '_stl', (None, 1), (100, 0), 'Enter stl file name', (None, None), 10)
             removeTableCheckbox = Checkbox(False)
 
-            xPosInput.bind(on_text_validate = self.inputValidator.onTextValidation)
-            yPosInput.bind(on_text_validate = self.inputValidator.onTextValidation)
-            rotInput.bind(on_text_validate = self.inputValidator.onTextValidation)
+            xPosInput.bind(on_text_validate = self.inputValidator.onXyrTextValidation)
+            yPosInput.bind(on_text_validate = self.inputValidator.onXyrTextValidation)
+            rotInput.bind(on_text_validate = self.inputValidator.onXyrTextValidation)
             stlFilenameInput.bind(on_text_validate = self.inputValidator.onStlTextValidation)
 
             self.add_widget(tableLabel)
@@ -180,7 +184,6 @@ class InnerLayout(GridLayout):
         global tablesNames
 
         for tableName in tablesNames:
-
             tableLabelId = tableName + '_label'
             if 'table_' in tableName:
                 try:
@@ -211,9 +214,9 @@ class InnerLayout(GridLayout):
                 stlFilenameInput.hint_text = 'Enter stl file name'
             removeTableCheckbox = Checkbox(False)
 
-            xPosInput.bind(on_text_validate = self.inputValidator.onTextValidation)
-            yPosInput.bind(on_text_validate = self.inputValidator.onTextValidation)
-            rotInput.bind(on_text_validate = self.inputValidator.onTextValidation)
+            xPosInput.bind(on_text_validate = self.inputValidator.onXyrTextValidation)
+            yPosInput.bind(on_text_validate = self.inputValidator.onXyrTextValidation)
+            rotInput.bind(on_text_validate = self.inputValidator.onXyrTextValidation)
             stlFilenameInput.bind(on_text_validate = self.inputValidator.onStlTextValidation)
 
             self.add_widget(tableLabel)
@@ -227,21 +230,20 @@ class InnerLayout(GridLayout):
         return self
     
     # Add additional non-connected table.
-    def addTable(self, _):
-        global tablesDict
-        global tablesNames
+    def addTable(self, tableName):
 
         self.addTableCounter += 1
-        tableLabel = Label('table_label', 'table_' + str(self.addTableCounter), (200, 20), (None, 1), 250)
+
+        tableLabel = Label('table_' + str(self.addTableCounter) + '_name', tableName, (200, 20), (None, 1), 250)
         xPosInput = TextInput('table_' + str(self.addTableCounter) + '_x', (None, 1), (100, 0), 'Enter x', (None, None), 10)
         yPosInput = TextInput('table_' + str(self.addTableCounter) + '_y', (None, 1), (100, 0), 'Enter y', (None, None), 10)
         rotInput = TextInput('table_' + str(self.addTableCounter) + '_rot', (None, 1), (100, 0), 'Enter rotation', (None, None), 10)
         stlFilenameInput = TextInput('table_' + str(self.addTableCounter) + '_stl', (None, 1), (100, 0), 'Enter stl file name', (None, None), 10)
         removeCheckbox = Checkbox(False)
 
-        xPosInput.bind(on_text_validate = self.inputValidator.onTextValidation)
-        yPosInput.bind(on_text_validate = self.inputValidator.onTextValidation)
-        rotInput.bind(on_text_validate = self.inputValidator.onTextValidation)
+        xPosInput.bind(on_text_validate = self.inputValidator.onXyrTextValidation)
+        yPosInput.bind(on_text_validate = self.inputValidator.onXyrTextValidation)
+        rotInput.bind(on_text_validate = self.inputValidator.onXyrTextValidation)
         stlFilenameInput.bind(on_text_validate = self.inputValidator.onStlTextValidation)
 
         self.add_widget(tableLabel)
@@ -252,8 +254,39 @@ class InnerLayout(GridLayout):
         self.add_widget(removeCheckbox)
         self.innerWidgets.append((tableLabel, xPosInput, yPosInput, rotInput, stlFilenameInput, removeCheckbox))
         self.height += 50
-        tablesDict['table_' + str(self.addTableCounter)] = [{}, {}, {}, {}]
-        tablesNames.append('table_' + str(self.addTableCounter))
+
+    def openTableNamePopup(self, _):
+        popupContent = FloatLayout()
+        self.popupTableNameTextInput = TextInput('table_name_input', (1, None), (0, 30), '', (0.5, 0.85), 10)
+        self.popupTableNameTextInput.hint_text = 'Enter table name'
+        self.popupTableNameTextInput.bind(on_text_validate = self.onTableNameValidation)
+        self.popupTableNameTextInput.bind(focus = self.onTableNameInputFocus)
+        self.popupTableNameLabel = Label('text_name_popup_label', '', (150, 20), (None, 1), 250)
+        self.popupTableNameLabel.pos_hint = {'center_x': 0.5, 'center_y': 0.5}
+        self.popupTableNameButton = AddButton('tableNamePopupButton', 'Confirm', (0.5, 0.2), (None, None), (100, 40))
+        self.popupTableNameButton.bind(on_press = self.onTableNameValidation)
+        popupContent.add_widget(self.popupTableNameTextInput)
+        popupContent.add_widget(self.popupTableNameButton)
+        popupContent.add_widget(self.popupTableNameLabel)
+        self.popupTableName = PopupWindow('Table Name Window', popupContent)
+        self.popupTableName.open()
+    
+    def onTableNameValidation(self, _):
+        global tablesDict
+        global tablesNames
+        innerLayout = InnerLayout()
+        if self.popupTableNameTextInput.text in tablesDict:
+            self.popupTableNameLabel.text = 'Table already exists!'
+        else:
+            tablesDict[str(self.popupTableNameTextInput.text)] = [{}, {}, {}, {}]
+            tablesNames.append(str(self.popupTableNameTextInput.text))
+            self.addTable(self.popupTableNameTextInput.text)
+            self.popupTableName.dismiss()
+
+    def onTableNameInputFocus(self, _, value):
+        if value:
+            self.popupTableNameLabel.text = ''
+            self.popupTableNameTextInput.text = ''
     
     # Remove selected tables.
     def removeTable(self, _):
@@ -342,10 +375,10 @@ class YamlParser():
             fileAlertPopup = PopupWindow('Alert Window', alertContent)
             fileAlertPopup.open()
 
-class RvizVisualization():
-    def __init__(self):
-        self.transformBroadcaster = tf.TransformBroadcaster()
-        self.transformListener = tf.TransformListener()
+# class RvizVisualization():
+#     def __init__(self):
+#         self.transformBroadcaster = tf.TransformBroadcaster()
+#         self.transformListener = tf.TransformListener()
 
 class Controller(FloatLayout):
 
@@ -363,6 +396,7 @@ class Controller(FloatLayout):
         self.scrollView = ScrollBar()
         self.innerLayout = InnerLayout()
         self.yamlParser = YamlParser()
+        self.inputValidator = InputValidator()
 
     # Method called when button 'Scan' is pressed.
     def scanStart(self):
@@ -400,7 +434,8 @@ class Controller(FloatLayout):
     # Add additional four buttons on the bottom of the screen.
     def addButtons(self):
         addTableButton = AddButton('addTableButton', 'Add Table', (0.1, 0.05), (0.2, 0.1), (0, 0))
-        addTableButton.bind(on_press = self.innerLayout.addTable)
+        # addTableButton.bind(on_press = self.innerLayout.addTable)
+        addTableButton.bind(on_press = self.innerLayout.openTableNamePopup)
         removeTableButton = AddButton('removeTableButton', 'Remove Selected\n      Tables', (0.3, 0.05), (0.2, 0.1), (0, 0))
         removeTableButton.bind(on_press = self.innerLayout.removeTable)
         createYamlButton = AddButton('createYamlButton', 'Create Yaml File', (0.7, 0.05), (0.2, 0.1), (0, 0))
