@@ -108,13 +108,14 @@ class InputValidator():
         global tablesDict
 
         for tableName in tablesNames:
-            if tableName in textInput.id:
+            if tableName in textInput.id and len(tableName) == len(textInput.id) - 2:
+
                 if self.validateInput(textInput.text):
                     if '_x' in textInput.id:
                         tablesDict[tableName][0] = {'x': int(textInput.text)}
                     if '_y' in textInput.id:
                         tablesDict[tableName][1] = {'y': int(textInput.text)}
-                    if '_rot' in textInput.id:
+                    if '_r' in textInput.id:
                         tablesDict[tableName][2] = {'r': int(textInput.text)}                
 
                 else:
@@ -128,7 +129,7 @@ class InputValidator():
 
         for tableName in tablesNames:
             if tableName in textInput.id:
-                tablesDict[tableName][3] = {'stl' : textInput.text}
+                tablesDict[tableName][3] = {'stl' : str(textInput.text)}
 
     # Validate text input - it must be integer.
     def validateInput(self, input):
@@ -160,7 +161,7 @@ class InnerLayout(GridLayout):
             tableLabel = Label(tableName + '_label', tableName, (200, 20), (None, 1), 250)
             xPosInput = TextInput(tableName + '_x', (None, 1), (100, 0), 'Enter x', (None, None), 10)
             yPosInput = TextInput(tableName + '_y', (None, 1), (100, 0), 'Enter y', (None, None), 10)
-            rotInput = TextInput(tableName + '_rot', (None, 1), (100, 0), 'Enter rotation', (None, None), 10)
+            rotInput = TextInput(tableName + '_r', (None, 1), (100, 0), 'Enter rotation', (None, None), 10)
             stlFilenameInput = TextInput(tableName + '_stl', (None, 1), (100, 0), 'Enter stl file name', (None, None), 10)
             removeTableCheckbox = Checkbox(False)
 
@@ -185,12 +186,6 @@ class InnerLayout(GridLayout):
 
         for tableName in tablesNames:
             tableLabelId = tableName + '_label'
-            if 'table_' in tableName:
-                try:
-                    self.addTableCounter = int(tableName[-1])
-                except:
-                    pass
-                tableLabelId = 'table_label'
             tableLabel = Label(tableLabelId, tableName, (200, 20), (None, 1), 250)
             xPosInput = TextInput(tableName + '_x', (None, 1), (100, 0), '', (None, None), 10)
             try:
@@ -202,7 +197,7 @@ class InnerLayout(GridLayout):
                 yPosInput.text = str(tablesDict[tableName][1]['y'])
             except:
                 yPosInput.hint_text = 'Enter y'
-            rotInput = TextInput(tableName + '_rot', (None, 1), (100, 0), '', (None, None), 10)
+            rotInput = TextInput(tableName + '_r', (None, 1), (100, 0), '', (None, None), 10)
             try:
                 rotInput.text = str(tablesDict[tableName][2]['r'])
             except:
@@ -232,13 +227,11 @@ class InnerLayout(GridLayout):
     # Add additional non-connected table.
     def addTable(self, tableName):
 
-        self.addTableCounter += 1
-
-        tableLabel = Label('table_' + str(self.addTableCounter) + '_name', tableName, (200, 20), (None, 1), 250)
-        xPosInput = TextInput('table_' + str(self.addTableCounter) + '_x', (None, 1), (100, 0), 'Enter x', (None, None), 10)
-        yPosInput = TextInput('table_' + str(self.addTableCounter) + '_y', (None, 1), (100, 0), 'Enter y', (None, None), 10)
-        rotInput = TextInput('table_' + str(self.addTableCounter) + '_rot', (None, 1), (100, 0), 'Enter rotation', (None, None), 10)
-        stlFilenameInput = TextInput('table_' + str(self.addTableCounter) + '_stl', (None, 1), (100, 0), 'Enter stl file name', (None, None), 10)
+        tableLabel = Label(tableName + '_label', tableName, (200, 20), (None, 1), 250)
+        xPosInput = TextInput(tableName + '_x', (None, 1), (100, 0), 'Enter x', (None, None), 10)
+        yPosInput = TextInput(tableName + '_y', (None, 1), (100, 0), 'Enter y', (None, None), 10)
+        rotInput = TextInput(tableName + '_r', (None, 1), (100, 0), 'Enter rotation', (None, None), 10)
+        stlFilenameInput = TextInput(tableName + '_stl', (None, 1), (100, 0), 'Enter stl file name', (None, None), 10)
         removeCheckbox = Checkbox(False)
 
         xPosInput.bind(on_text_validate = self.inputValidator.onXyrTextValidation)
@@ -375,10 +368,10 @@ class YamlParser():
             fileAlertPopup = PopupWindow('Alert Window', alertContent)
             fileAlertPopup.open()
 
-# class RvizVisualization():
-#     def __init__(self):
-#         self.transformBroadcaster = tf.TransformBroadcaster()
-#         self.transformListener = tf.TransformListener()
+class RvizVisualization():
+    def __init__(self):
+        self.transformBroadcaster = tf.TransformBroadcaster()
+        self.transformListener = tf.TransformListener()
 
 class Controller(FloatLayout):
 
