@@ -34,8 +34,8 @@ class NetworkScanner():
     # Get Ip addresses in defined range.
     def getIps(self):
         availableIps = []
-        baseIp = '192.168.1.'
-        for i in range(1, 10):
+        baseIp = '10.20.1.'
+        for i in range(50, 60):
             ping = os.system('ping -c1 -w1 ' + baseIp + str(i))
             if ping == 0:
                 availableIps.append(baseIp + str(i))
@@ -180,7 +180,7 @@ class InnerLayout(GridLayout):
                 self.innerWidgets.append((tableLabel, xPosInput, yPosInput, rotInput, stlFilenameInput, removeTableCheckbox))
                 tablesDict[tableName] = [{}, {}, {}, {}]
         except:
-            popupContent = Label('popupLabel', 'Cannot find connected\n tables!', (100, 40), (None, 1), 200)
+            popupContent = Label('popupLabel', 'Cannot find\n connected\n tables!', (100, 60), (None, 1), 200)
             popup = PopupWindow('Alert Window', popupContent)
             popup.open()
 
