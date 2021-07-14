@@ -34,8 +34,8 @@ class NetworkScanner():
     # Get Ip addresses in defined range.
     def getIps(self):
         availableIps = []
-        baseIp = '10.20.1.'
-        for i in range(50, 60):
+        baseIp = '192.168.1.'
+        for i in range(1, 10):
             ping = os.system('ping -c1 -w1 ' + baseIp + str(i))
             if ping == 0:
                 availableIps.append(baseIp + str(i))
@@ -46,9 +46,9 @@ class NetworkScanner():
         for ip in ips:
             try:
                 availableHostNames.append(socket.gethostbyaddr(ip)[0])
-                return availableHostNames
             except:
-                return 0
+                pass
+        return availableHostNames
 
 # Widget classes.
 class ScrollBar(ScrollView):
@@ -157,7 +157,7 @@ class InnerLayout(GridLayout):
         global tablesDict
         global tablesNames
 
-        try:
+        if len(tablesNames) > 0:
             for tableName in tablesNames:
                 tableLabel = Label(tableName + '_label', tableName, (200, 20), (None, 1), 250)
                 xPosInput = TextInput(tableName + '_x', (None, 1), (100, 0), 'Enter x', (None, None), 10)
@@ -179,7 +179,7 @@ class InnerLayout(GridLayout):
                 self.add_widget(removeTableCheckbox)
                 self.innerWidgets.append((tableLabel, xPosInput, yPosInput, rotInput, stlFilenameInput, removeTableCheckbox))
                 tablesDict[tableName] = [{}, {}, {}, {}]
-        except:
+        else:
             popupContent = Label('popupLabel', 'Cannot find\n connected\n tables!', (100, 60), (None, 1), 200)
             popup = PopupWindow('Alert Window', popupContent)
             popup.open()
