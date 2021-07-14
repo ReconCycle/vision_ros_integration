@@ -29,7 +29,7 @@ global tablesNames
 tablesDict = {}
 tablesNames = []
 
-# # Class for scanning ips and hostnames.
+# Class for scanning ips and hostnames.
 class NetworkScanner():
     # Get Ip addresses in defined range.
     def getIps(self):
@@ -157,27 +157,32 @@ class InnerLayout(GridLayout):
         global tablesDict
         global tablesNames
 
-        for tableName in tablesNames:
-            tableLabel = Label(tableName + '_label', tableName, (200, 20), (None, 1), 250)
-            xPosInput = TextInput(tableName + '_x', (None, 1), (100, 0), 'Enter x', (None, None), 10)
-            yPosInput = TextInput(tableName + '_y', (None, 1), (100, 0), 'Enter y', (None, None), 10)
-            rotInput = TextInput(tableName + '_r', (None, 1), (100, 0), 'Enter rotation', (None, None), 10)
-            stlFilenameInput = TextInput(tableName + '_stl', (None, 1), (100, 0), 'Enter stl file name', (None, None), 10)
-            removeTableCheckbox = Checkbox(False)
+        try:
+            for tableName in tablesNames:
+                tableLabel = Label(tableName + '_label', tableName, (200, 20), (None, 1), 250)
+                xPosInput = TextInput(tableName + '_x', (None, 1), (100, 0), 'Enter x', (None, None), 10)
+                yPosInput = TextInput(tableName + '_y', (None, 1), (100, 0), 'Enter y', (None, None), 10)
+                rotInput = TextInput(tableName + '_r', (None, 1), (100, 0), 'Enter rotation', (None, None), 10)
+                stlFilenameInput = TextInput(tableName + '_stl', (None, 1), (100, 0), 'Enter stl file name', (None, None), 10)
+                removeTableCheckbox = Checkbox(False)
 
-            xPosInput.bind(on_text_validate = self.inputValidator.onXyrTextValidation)
-            yPosInput.bind(on_text_validate = self.inputValidator.onXyrTextValidation)
-            rotInput.bind(on_text_validate = self.inputValidator.onXyrTextValidation)
-            stlFilenameInput.bind(on_text_validate = self.inputValidator.onStlTextValidation)
+                xPosInput.bind(on_text_validate = self.inputValidator.onXyrTextValidation)
+                yPosInput.bind(on_text_validate = self.inputValidator.onXyrTextValidation)
+                rotInput.bind(on_text_validate = self.inputValidator.onXyrTextValidation)
+                stlFilenameInput.bind(on_text_validate = self.inputValidator.onStlTextValidation)
 
-            self.add_widget(tableLabel)
-            self.add_widget(xPosInput)
-            self.add_widget(yPosInput)
-            self.add_widget(rotInput)
-            self.add_widget(stlFilenameInput)
-            self.add_widget(removeTableCheckbox)
-            self.innerWidgets.append((tableLabel, xPosInput, yPosInput, rotInput, stlFilenameInput, removeTableCheckbox))
-            tablesDict[tableName] = [{}, {}, {}, {}]
+                self.add_widget(tableLabel)
+                self.add_widget(xPosInput)
+                self.add_widget(yPosInput)
+                self.add_widget(rotInput)
+                self.add_widget(stlFilenameInput)
+                self.add_widget(removeTableCheckbox)
+                self.innerWidgets.append((tableLabel, xPosInput, yPosInput, rotInput, stlFilenameInput, removeTableCheckbox))
+                tablesDict[tableName] = [{}, {}, {}, {}]
+        except:
+            popupContent = Label('popupLabel', 'Cannot find connected\n tables!', (100, 40), (None, 1), 200)
+            popup = PopupWindow('Alert Window', popupContent)
+            popup.open()
 
     # Method for creating inner layout from loaded hostnames (and values).
     def createFromLoad(self):
