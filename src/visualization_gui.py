@@ -20,6 +20,7 @@ import yaml
 import rospy
 from rospy import Time
 from visualization_msgs.msg import Marker
+from robot_module_msgs.srv import StlFileManager
 import tf
 
 
@@ -151,6 +152,7 @@ class InnerLayout(GridLayout):
         self.inputValidator = InputValidator()
         self.innerWidgets = []
         self.addTableCounter = 0
+        self.stlFileReader = StlFileReader()
 
     # Method for creating inner layout from scanned hostnames.
     def createFromScan(self):
@@ -164,6 +166,7 @@ class InnerLayout(GridLayout):
                 yPosInput = TextInput(tableName + '_y', (None, 1), (100, 0), 'Enter y', (None, None), 10)
                 rotInput = TextInput(tableName + '_r', (None, 1), (100, 0), 'Enter rotation', (None, None), 10)
                 stlFilenameInput = TextInput(tableName + '_stl', (None, 1), (100, 0), 'Enter stl file name', (None, None), 10)
+                stlFilenameInput.text = self.stlFileReader.getStlFileName(tableName)
                 removeTableCheckbox = Checkbox(False)
 
                 xPosInput.bind(on_text_validate = self.inputValidator.onXyrTextValidation)
@@ -178,7 +181,9 @@ class InnerLayout(GridLayout):
                 self.add_widget(stlFilenameInput)
                 self.add_widget(removeTableCheckbox)
                 self.innerWidgets.append((tableLabel, xPosInput, yPosInput, rotInput, stlFilenameInput, removeTableCheckbox))
-                tablesDict[tableName] = [{}, {}, {}, {}]
+
+                if (stlFilenameInput.text):
+                    tablesDict[tableName] = [{}, {}, {}, {'stl' : str(stlFilenameInput.text)}]
         else:
             popupContent = Label('popupLabel', 'Cannot find\n connected\n tables!', (100, 60), (None, 1), 200)
             popup = PopupWindow('Alert Window', popupContent)
@@ -374,6 +379,7 @@ class YamlParser():
             fileAlertPopup.open()
 
 class RvizVisualization():
+
     def __init__(self):
         self.transformBroadcaster = tf.TransformBroadcaster()
         self.markerPublisher = rospy.Publisher('/visualization_marker', Marker, queue_size = 10)
@@ -432,6 +438,23 @@ class RvizVisualization():
         marker = Marker()
         marker.action = marker.DELETEALL
         self.markerPublisher.publish(marker)
+
+class StlFileReader():
+    def __init__(self):
+        self.serviceName = 'stl_file_service_'
+    
+    def getStlFileName(self, tableName):
+        fullServiceName = self.serviceName + tableName
+        rospy.wait_for_service(fullServiceName)
+        stlFilename = ''
+        try:
+            stlService = rospy.ServiceProxy(fullServiceName, StlFileManager)
+            serviceResponse = stlService(tableName)
+            stlFilename = serviceResponse.stlFilename
+        except:
+            pass
+        
+        return stlFilename
 
 class Controller(FloatLayout):
 
