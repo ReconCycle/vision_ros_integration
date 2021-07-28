@@ -13,9 +13,12 @@ from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
 from kivy.core.window import Window
 from kivy.uix.checkbox import CheckBox
+
 import os
+import os.path
 import socket
 import yaml
+import math
 
 import rospy
 from rospy import Time
@@ -32,6 +35,8 @@ tablesNames = []
 
 # Class for scanning ips and hostnames.
 class NetworkScanner():
+    # ADD GLASS API CALL HERE
+    
     # Get Ip addresses in defined range.
     def getIps(self):
         availableIps = []
@@ -41,15 +46,16 @@ class NetworkScanner():
             if ping == 0:
                 availableIps.append(baseIp + str(i))
         return availableIps
+
     # Get hostnames from ips.
     def getHostname(self, ips):
-        availableHostNames = []
+        availableHostnames = []
         for ip in ips:
             try:
-                availableHostNames.append(socket.gethostbyaddr(ip)[0])
+                availableHostnames.append(socket.gethostbyaddr(ip)[0])
             except:
                 pass
-        return availableHostNames
+        return availableHostnames
 
 # Widget classes.
 class ScrollBar(ScrollView):
@@ -68,12 +74,12 @@ class AddButton(Button):
         self.pos_hint = {'center_x': buttonPosHint[0], 'center_y': buttonPosHint[1]}
 
 class PopupWindow(Popup):
-    def __init__(self, popupTitle, popupContent):
+    def __init__(self, popupTitle, popupContent, popupSize = (200, 200)):
         super(PopupWindow, self).__init__()
         self.title = popupTitle
         self.content = popupContent
         self.size_hint = (None, None)
-        self.size = (200, 200)
+        self.size = popupSize
 
 class TextInput(TextInput):
     def __init__(self, inputId, inputSizeHint, inputSize, inputHintText, inputPosHint, inputFontSize):
@@ -121,16 +127,23 @@ class InputValidator():
 
                 else:
                     popupContent = Label('popupLabel', 'Invalid input!', (100, 20), (None, 1), 200)
-                    popup = PopupWindow('Alert Window', popupContent)
+                    popup = PopupWindow('Alert Window', popupContent, (200, 125))
                     popup.open()
 
     def onStlTextValidation(self, textInput):
         global tablesNames
         global tablesDict
 
+        stlPath = '/ros_ws/src/reconcycle_visualization/reconcycle_description/meshes/'
+
         for tableName in tablesNames:
             if tableName in textInput.id:
-                tablesDict[tableName][3] = {'stl' : str(textInput.text)}
+                if os.path.isfile(stlPath + str(textInput.text) + '.stl'):
+                    tablesDict[tableName][3] = {'stl' : str(textInput.text)}
+                else:
+                    popupContent = Label('popupLabel', 'Missing stl file!', (150, 40), (None, 1), 200)
+                    popup = PopupWindow('Alert Window', popupContent, (200, 125))
+                    popup.open()
 
     # Validate text input - it must be integer.
     def validateInput(self, input):
@@ -142,7 +155,7 @@ class InputValidator():
 # Inner layout contains labels with hostnames and text inputs for positions.
 class InnerLayout(GridLayout):
 
-    def __init__(self, namePosDict = None):
+    def __init__(self):
         super(InnerLayout, self).__init__()
         self.cols = 6
         self.row_force_default = True
@@ -185,8 +198,8 @@ class InnerLayout(GridLayout):
                 if (stlFilenameInput.text):
                     tablesDict[tableName] = [{}, {}, {}, {'stl' : str(stlFilenameInput.text)}]
         else:
-            popupContent = Label('popupLabel', 'Cannot find\n connected\n tables!', (100, 60), (None, 1), 200)
-            popup = PopupWindow('Alert Window', popupContent)
+            popupContent = Label('popupLabel', 'Cannot find connected tables!', (250, 40), (None, 1), 300)
+            popup = PopupWindow('Alert Window', popupContent, (300, 125))
             popup.open()
 
     # Method for creating inner layout from loaded hostnames (and values).
@@ -328,6 +341,7 @@ class YamlParser():
         self.popupContent.add_widget(self.popupTextInput)
         self.popupContent.add_widget(self.popupButton)
         self.popup = PopupWindow('', self.popupContent)
+        self.yamlFilePath = '/ros_ws/src/vision_ros_integration/config/cell_config/'
 
     # Open popup for saving yaml file.
     def openSaveYamlPopup(self, _):
@@ -343,7 +357,7 @@ class YamlParser():
     # Save yaml file.
     def saveYamlFile(self, _):
         self.popup.dismiss()
-        yamlFileName = '/ros_ws/src/vision_ros_integration/config/cell_config/' + self.popupTextInput.text
+        yamlFileName =  self.yamlFilePath + self.popupTextInput.text
         self.popupTextInput.text = ''
         with open(str(yamlFileName) + '.yaml', 'w') as outputFile:
             yaml.dump(tablesDict, outputFile, default_flow_style = False)
@@ -367,15 +381,15 @@ class YamlParser():
         global tablesDict
 
         self.popup.dismiss()
-        yamlFileName = '/ros_ws/src/vision_ros_integration/config/cell_config/' + self.popupTextInput.text
+        yamlFileName = self.yamlFilePath + self.popupTextInput.text
         self.popupTextInput.text = ''
         try:
             tablesDict = yaml.load(file(yamlFileName + '.yaml', 'r'))
             tablesNames = tablesDict.keys()
             self.innerLayout.createFromLoad()
-        except Exception as e:
-            alertContent = Label('alertLabel', e.message, (100, 40), (None, 1), 200)
-            fileAlertPopup = PopupWindow('Alert Window', alertContent)
+        except:
+            alertContent = Label('alertLabel', 'No such yaml file!', (180, 20), (None, 1), 200)
+            fileAlertPopup = PopupWindow('Alert Window', alertContent, (200, 125))
             fileAlertPopup.open()
 
 class RvizVisualization():
@@ -408,12 +422,14 @@ class RvizVisualization():
         except:
             r = 0
         translation = (x * self.tableWidth, y * self.tableWidth, 0.0)
-        eulers = (0.0, 0.0, r)
+        eulers = (0.0, 0.0, r * math.pi/180)
         quaternions = tf.transformations.quaternion_from_euler(eulers[0], eulers[1], eulers[2])
         self.transformBroadcaster.sendTransform(translation, quaternions, Time.now(), tableName, 'world')
 
     def drawTableMarker(self, tableName):
         global tablesDict
+
+        meshResourcePath = 'package://reconcycle_description/meshes/'
 
         marker = Marker()
         marker.header.frame_id = tableName
@@ -421,10 +437,7 @@ class RvizVisualization():
         marker.ns = tableName
         marker.id = 1
         marker.type = marker.MESH_RESOURCE
-        try:
-            marker.mesh_resource = 'package://reconcycle_description/meshes/' + tablesDict[tableName][3]['stl'] + '.stl'
-        except:
-            marker.mesh_resource = 'package://reconcycle_description/meshes/table.stl'
+
         marker.mesh_use_embedded_materials = True
         marker.action = marker.ADD
         marker.scale.x = 0.001
@@ -432,7 +445,11 @@ class RvizVisualization():
         marker.scale.z = 0.001
         marker.pose.orientation.x = 1.0
         marker.pose.orientation.w = 1.0
-        self.markerPublisher.publish(marker)
+
+        marker.mesh_resource = meshResourcePath + tablesDict[tableName][3]['stl'] + '.stl'   
+        self.markerPublisher.publish(marker)       
+
+        
     
     def refreshMarkers(self):
         marker = Marker()
@@ -445,7 +462,7 @@ class StlFileReader():
     
     def getStlFileName(self, tableName):
         fullServiceName = self.serviceName + tableName
-        rospy.wait_for_service(fullServiceName)
+        # rospy.wait_for_service(fullServiceName)
         stlFilename = ''
         try:
             stlService = rospy.ServiceProxy(fullServiceName, StlFileManager)
@@ -478,6 +495,7 @@ class Controller(FloatLayout):
     # Method called when button 'Scan' is pressed.
     def scanStart(self):
         self.actionLabelText = 'Scanning...'
+    
 
     # Method called when button 'Scan' is released.
     def scanCompleted(self):
@@ -511,7 +529,6 @@ class Controller(FloatLayout):
     # Add additional four buttons on the bottom of the screen.
     def addButtons(self):
         addTableButton = AddButton('addTableButton', 'Add Table', (0.1, 0.05), (0.2, 0.1), (0, 0))
-        # addTableButton.bind(on_press = self.innerLayout.addTable)
         addTableButton.bind(on_press = self.innerLayout.openTableNamePopup)
         removeTableButton = AddButton('removeTableButton', 'Remove Selected\n      Tables', (0.3, 0.05), (0.2, 0.1), (0, 0))
         removeTableButton.bind(on_press = self.innerLayout.removeTable)

@@ -9,12 +9,10 @@ def stlHandler(req):
     success = False
     stlFilename = ''
     if req.tableName == thisTableName:
-        stlFilename = 'table'
+        stlFilename = thisTableName
         success = True
     
     return stlFilename, success
-
-
 
 
 if __name__ == '__main__':
