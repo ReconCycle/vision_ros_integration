@@ -141,7 +141,7 @@ class InputValidator():
                 if os.path.isfile(stlPath + str(textInput.text) + '.stl'):
                     tablesDict[tableName][3] = {'stl' : str(textInput.text)}
                 else:
-                    popupContent = Label('popupLabel', 'Missing stl file!', (150, 40), (None, 1), 200)
+                    popupContent = Label('popupLabel', 'Wrong stl file name!', (150, 40), (None, 1), 200)
                     popup = PopupWindow('Alert Window', popupContent, (200, 125))
                     popup.open()
 
@@ -179,7 +179,7 @@ class InnerLayout(GridLayout):
                 yPosInput = TextInput(tableName + '_y', (None, 1), (100, 0), 'Enter y', (None, None), 10)
                 rotInput = TextInput(tableName + '_r', (None, 1), (100, 0), 'Enter rotation', (None, None), 10)
                 stlFilenameInput = TextInput(tableName + '_stl', (None, 1), (100, 0), 'Enter stl file name', (None, None), 10)
-                stlFilenameInput.text = self.stlFileReader.getStlFileName(tableName)
+                stlFilenameInput.text = self.stlFileReader.getStlFilename(tableName)
                 removeTableCheckbox = Checkbox(False)
 
                 xPosInput.bind(on_text_validate = self.inputValidator.onXyrTextValidation)
@@ -195,6 +195,7 @@ class InnerLayout(GridLayout):
                 self.add_widget(removeTableCheckbox)
                 self.innerWidgets.append((tableLabel, xPosInput, yPosInput, rotInput, stlFilenameInput, removeTableCheckbox))
 
+                tablesDict[tableName] = [{}, {}, {}, {}]
                 if (stlFilenameInput.text):
                     tablesDict[tableName] = [{}, {}, {}, {'stl' : str(stlFilenameInput.text)}]
         else:
@@ -446,7 +447,11 @@ class RvizVisualization():
         marker.pose.orientation.x = 1.0
         marker.pose.orientation.w = 1.0
 
-        marker.mesh_resource = meshResourcePath + tablesDict[tableName][3]['stl'] + '.stl'   
+        try:
+            marker.mesh_resource = meshResourcePath + tablesDict[tableName][3]['stl'] + '.stl' 
+        except:
+            marker.mesh_resource = meshResourcePath + 'table.stl'
+
         self.markerPublisher.publish(marker)       
 
         
@@ -460,7 +465,7 @@ class StlFileReader():
     def __init__(self):
         self.serviceName = 'stl_file_service_'
     
-    def getStlFileName(self, tableName):
+    def getStlFilename(self, tableName):
         fullServiceName = self.serviceName + tableName
         # rospy.wait_for_service(fullServiceName)
         stlFilename = ''
