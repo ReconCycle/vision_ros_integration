@@ -19,6 +19,7 @@ import os.path
 import socket
 import yaml
 import math
+import requests
 
 import rospy
 from rospy import Time
@@ -36,26 +37,19 @@ tablesNames = []
 # Class for scanning ips and hostnames.
 class NetworkScanner():
     # ADD GLASS API CALL HERE
+    def __init__(self):
+        self.apiUrl = 'http://reconcycle-dev1.ijs.si:3000/api/get_active_leases'
     
     # Get Ip addresses in defined range.
-    def getIps(self):
-        availableIps = []
-        baseIp = '192.168.1.'
-        for i in range(1, 10):
-            ping = os.system('ping -c1 -w1 ' + baseIp + str(i))
-            if ping == 0:
-                availableIps.append(baseIp + str(i))
-        return availableIps
-
-    # Get hostnames from ips.
-    def getHostname(self, ips):
+    def getHostnames(self):
         availableHostnames = []
-        for ip in ips:
-            try:
-                availableHostnames.append(socket.gethostbyaddr(ip)[0])
-            except:
-                pass
+        apiResponse = requests.get(self.apiUrl)
+        ipsDict = apiResponse.json()
+        for ip in ipsDict:
+            availableHostnames.append(ipsDict[ip]['host'])
+
         return availableHostnames
+        
 
 # Widget classes.
 class ScrollBar(ScrollView):
@@ -507,8 +501,7 @@ class Controller(FloatLayout):
         global tablesNames
 
         self.removeWidgets()
-        ips = self.networkScanner.getIps()
-        tablesNames = self.networkScanner.getHostname(ips)
+        tablesNames = self.networkScanner.getHostnames()
         self.actionLabelText = ''
         self.moveStartLoadLabelUp(0.95)
         self.add_widget(self.scrollView)
