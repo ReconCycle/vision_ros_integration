@@ -41,12 +41,15 @@ def trackActiveFramesAndColors(activeClasses, cameraTf):
     activeFrames = []
     activeColors = []
     for activeClass in activeClasses:
-        activeColors.append(colorsDict[0][activeClass])
-        if activeClass in activeFrames:
-            k += 1
-            activeClass = activeClass + str(k)
-        k = 0
-        activeFrames.append(activeClass + '_' + cameraTf)
+        try:
+            activeColors.append(colorsDict[0][activeClass])
+            if activeClass in activeFrames:
+                k += 1
+                activeClass = activeClass + str(k)
+            k = 0
+            activeFrames.append(activeClass + '_' + cameraTf)
+        except Exception as e:
+            pass
 
     
     return activeFrames, activeColors
@@ -141,6 +144,6 @@ if __name__ == '__main__':
         textArray = prepareTextArray(activeFrames, cameraNs)
 
         objectArrayPub.publish(objectArray)
-        textArrayPub.publish(textArray)
+        # textArrayPub.publish(textArray)
 
         rate.sleep()
