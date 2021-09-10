@@ -22,10 +22,12 @@ textOffsetZ = 0.15
 def readConfigParams():
     keywords = rospy.get_param("/VisionPipeline/keywords")
     colorsDict = rospy.get_param("/VisionPipeline/object_color_dict")
-    # Local parameter for each camera ns.
-    cameraTf = rospy.get_param("~camera_tf")
     # Read namespace
     cameraNs = rospy.get_namespace()
+    rospy.loginfo("ROS namespace: {}".format(cameraNs))
+    # Local parameter for each camera ns.
+    cameraTf = rospy.get_param(cameraNs + "/vp_data_visualization/camera_tf")
+    rospy.loginfo("Object TF name: {}".format(cameraTf))
 
     return keywords, colorsDict, cameraTf, cameraNs
 

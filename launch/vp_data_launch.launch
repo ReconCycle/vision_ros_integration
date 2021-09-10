@@ -10,7 +10,7 @@
       <node name="camera_1_to_panda_1" pkg="tf" type="static_transform_publisher" args="-0.3 -0.9 0 0 0 0 panda_1/world camera_1_tf 100"/>      
       ?>
       <node name="vp_data_visualization" pkg="vision_ros_integration" type="vp_data_visualization.py">
-        <param name="camera_tf" value="camera_1_tf"/>
+        <param name="camera_tf" value="vision_table_zero"/>
       </node>
     </group>
 
