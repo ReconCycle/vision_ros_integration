@@ -146,6 +146,6 @@ if __name__ == '__main__':
         textArray = prepareTextArray(activeFrames, cameraNs)
 
         objectArrayPub.publish(objectArray)
-        # textArrayPub.publish(textArray)
+        textArrayPub.publish(textArray)
 
         rate.sleep()
