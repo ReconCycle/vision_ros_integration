@@ -2,7 +2,7 @@
     <rosparam file="$(find vision_ros_integration)/config/vp_data_config.yaml"/>
 
     <node name="panda_1_to_zero" pkg="tf" type="static_transform_publisher" args="0.2602 -0.6074 -0.0734 0.4969 -0.8678 -0.0022 0.0116 panda_1/panda_link0 vision_table_zero 100"/>      
-
+    
     <group ns="camera_1">
       <remap from="/vision_pipeline/data" to="vision_pipeline/data"/>
       <?ignore
