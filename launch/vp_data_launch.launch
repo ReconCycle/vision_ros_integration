@@ -4,28 +4,28 @@
     <?ignore
     <node name="panda_1_to_calib" pkg="tf" type="static_transform_publisher" args="0.2602 -0.6074 -0.0734 0.4969 -0.8678 -0.0022 0.0116 panda_1/panda_link0 vision_table_calib 100"/>
     ?>
-    <node name="panda_1_to_calib" pkg="tf" type="static_transform_publisher" args="0.2602 -0.6074 -0.0734 0 0 0 1 panda_1/panda_link0 vision_table_calib 100"/>
+    <node name="panda_1_to_calib" pkg="tf" type="static_transform_publisher" args="0.2602 -0.6074 0 0 0 0 1 panda_1/panda_link0 vision_table_calib 100"/>
     <node name="calib_to_zero" pkg="tf" type="static_transform_publisher" args="-0.57 -0.3 0 0.7071 0.7071 0 0 vision_table_calib vision_table_zero 100"/>
     
+    <?ignore
     <group ns="camera_1">
       <remap from="/vision_pipeline/data" to="vision_pipeline/data"/>
-      <?ignore
       <node pkg="rosbag" type="play" name="bag_player" args="--clock /ros_ws/src/vision_ros_integration/bags/1_moving_1-2_hcas_around.bag"/>
       <node name="camera_1_to_panda_1" pkg="tf" type="static_transform_publisher" args="-0.3 -0.9 0 0 0 0 panda_1/world camera_1_tf 100"/>      
-      ?>
       <node name="vp_data_visualization" pkg="vision_ros_integration" type="vp_data_visualization.py">
         <param name="camera_tf" value="vision_table_zero"/>
       </node>
     </group>
+    ?>
 
+    <?ignore
     <group ns="camera_2">
       <remap from="/vision_pipeline/data" to="vision_pipeline/data"/>
-      <?ignore
       <node pkg="rosbag" type="play" name="bag_player" args="--clock /ros_ws/src/vision_ros_integration/bags/3_separating_pcb_and_plastic.bag"/>
       <node name="camera_2_to_panda_2" pkg="tf" type="static_transform_publisher" args="-0.3 0.3 0 0 0 0 panda_2/world camera_2_tf 100"/>
-      ?>
       <node name="vp_data_visualization" pkg="vision_ros_integration" type="vp_data_visualization.py">
         <param name="camera_tf" value="camera_2_tf"/>
       </node>
     </group>
+    ?>
 </launch>
