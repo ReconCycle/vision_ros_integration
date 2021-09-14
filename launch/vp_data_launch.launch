@@ -12,11 +12,13 @@
       <remap from="/vision_pipeline/data" to="vision_pipeline/data"/>
       <node pkg="rosbag" type="play" name="bag_player" args="--clock /ros_ws/src/vision_ros_integration/bags/1_moving_1-2_hcas_around.bag"/>
       <node name="camera_1_to_panda_1" pkg="tf" type="static_transform_publisher" args="-0.3 -0.9 0 0 0 0 panda_1/world camera_1_tf 100"/>      
-      <node name="vp_data_visualization" pkg="vision_ros_integration" type="vp_data_visualization.py">
-        <param name="camera_tf" value="vision_table_zero"/>
-      </node>
     </group>
     ?>
+
+    <group ns="camera_1">
+      <param name="vp_data_visualization/camera_tf" value="vision_table_zero"/>
+      <node name="vp_data_visualization" pkg="vision_ros_integration" type="vp_data_visualization.py" />
+    </group>
 
     <?ignore
     <group ns="camera_2">
