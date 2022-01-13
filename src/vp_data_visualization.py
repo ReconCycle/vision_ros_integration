@@ -38,22 +38,46 @@ def callbackReceivedData(msg):
 
 
 # Keep track of active frames - if object is duplicated, add a number to its name.
-def trackActiveFramesAndColors(activeClasses, cameraTf):
-    k = 0
+#def trackActiveFramesAndColors(activeClasses, cameraTf):
+#    k = 0
+#    activeFrames = []
+#    activeColors = []
+#    for activeClass in activeClasses:
+#        try:
+#            activeColors.append(colorsDict[0][activeClass])
+#            if activeClass in activeFrames:
+#                k += 1
+#                activeClass = activeClass + str(k)
+#            k = 0
+#            activeFrames.append(activeClass + '_' + cameraTf)
+#        except Exception as e:
+#            pass    
+#    return activeFrames, activeColors
+
+# Keep track of active frames - if object is duplicated, add a number to its name.
+def trackActiveFramesAndColors(activeClasses,cameraTf):
     activeFrames = []
     activeColors = []
+
+    tmp_classes = []
+    tmp_k = {} # Dictionary for keeping track of current index of each particular class (battery, hca_front, etc)
+
     for activeClass in activeClasses:
         try:
             activeColors.append(colorsDict[0][activeClass])
-            if activeClass in activeFrames:
-                k += 1
-                activeClass = activeClass + str(k)
-            k = 0
-            activeFrames.append(activeClass + '_' + cameraTf)
+            if activeClass in tmp_k.keys():
+                tmp_k[activeClass] += 1
+                activeClass = activeClass + str(tmp_k[activeClass])
+            else:
+                tmp_k[activeClass] = 0
+
+                
+            #rospy.loginfo("{}".format(activeClass))
+            activeFrames.append(activeClass+ '_' + cameraTf)
+            
         except Exception as e:
             pass
-
-    
+    #rospy.loginfo("end")
     return activeFrames, activeColors
 
 def sendTfTransform(activeFrames, centers, quaternions, cameraTf):
@@ -69,6 +93,11 @@ def calculateObjectEdges(activeCorners):
     for corners in activeCorners:
         xEdge = math.sqrt((corners[1][0] - corners[2][0])**2 + (corners[1][1] - corners[2][1])**2)
         yEdge = math.sqrt((corners[0][0] - corners[1][0])**2 + (corners[0][1] - corners[1][1])**2)
+        
+        #longEdge = max(xEdge,yEdge)
+        #shortEdge = min(xEdge,yEdge)
+        #activeEdges.append((shortEdge, longEdge))
+        
         activeEdges.append((xEdge, yEdge))
 
     return activeEdges
@@ -121,20 +150,20 @@ def prepareTextArray(activeFrame, cameraNs):
 
     return markerArray
     
- def filterMarkerArray(markerArray, outputClass = 'battery'):
+def filterMarkerArray(markerArray, outputClass = 'battery'):
     """ After we get an input marker array, we only select markers of certain class (input_class, for example 'battery') and return those,
     so we can for example show only battery markers"""
     
     assert outputClass in ['battery', 'hca_front', 'hca_back', 'hca_side']
     
-    markerArray = MarkerArray()
-    markerArray.markers = []
+    new_marker_array = MarkerArray()
+    new_marker_array.markers = []
     
-    for marker in markerArray:
-        if outputClass in marker.text:
-            markerArray.markers.append(marker)
+    for marker in markerArray.markers:
+        if outputClass in marker.header.frame_id:
+            new_marker_array.markers.append(marker)
     
-    return markerArray
+    return new_marker_array
 
 if __name__ == '__main__':
     rospy.init_node('vision_pipeline_data_visualization')
@@ -142,10 +171,10 @@ if __name__ == '__main__':
     keywords, colorsDict, cameraTf, cameraNs = readConfigParams()  
     sub = rospy.Subscriber('/vision_pipeline/data', String, callbackReceivedData)
     
-    batteryArrayPub  = rospy.Publisher('/visualization_marker_array_battery', MarkerArray, queue_size = 20)
-    hcaFrontArrayPub =  rospy.Publisher('/visualization_marker_array_hca_front', MarkerArray, queue_size = 20)
-    hcaBackArrayPub =  rospy.Publisher('/visualization_marker_array_hca_back', MarkerArray, queue_size = 20)
-    hcaSideArrayPub = rospy.Publisher('/visualization_marker_array_hca_side', MarkerArray, queue_size = 20)
+    batteryArrayPub  = rospy.Publisher('/visualization_marker_array/battery', MarkerArray, queue_size = 20)
+    hcaFrontArrayPub =  rospy.Publisher('/visualization_marker_array/hca_front', MarkerArray, queue_size = 20)
+    hcaBackArrayPub =  rospy.Publisher('/visualization_marker_array/hca_back', MarkerArray, queue_size = 20)
+    hcaSideArrayPub = rospy.Publisher('/visualization_marker_array/hca_side', MarkerArray, queue_size = 20)
     
     objectArrayPub = rospy.Publisher('/visualization_marker_array', MarkerArray, queue_size = 20)
     
@@ -162,17 +191,17 @@ if __name__ == '__main__':
         centers = parser.parseCenters(cleanedString, idxCenter, idxQuat, keywords[3])
         quaternions = parser.parseQuaternions(cleanedString, idxQuat, idxClassName, keywords[4])
         activeEdges = calculateObjectEdges(corners)
-        
         activeFrames, activeColors = trackActiveFramesAndColors(activeClasses, cameraTf)
+
         sendTfTransform(activeFrames, centers, quaternions, cameraTf)
         
         objectArray = prepareObjectArray(activeFrames, activeColors, activeEdges, cameraNs)
         textArray = prepareTextArray(activeFrames, cameraNs)
         
-        batteryArray = filterMarkerArray(markerArray, outputClass = 'battery')
-        hcaFrontArray = filterMarkerArray(markerArray, outputClass = 'hca_front')
-        hcaBackArray =  filterMarkerArray(markerArray, outputClass = 'hca_back')
-        hcaSideArray = filterMarkerArray(markerArray, outputClass = 'hca_side')
+        batteryArray = filterMarkerArray(objectArray, outputClass = 'battery')
+        hcaFrontArray = filterMarkerArray(objectArray, outputClass = 'hca_front')
+        hcaBackArray =  filterMarkerArray(objectArray, outputClass = 'hca_back')
+        hcaSideArray = filterMarkerArray(objectArray, outputClass = 'hca_side')
 
         objectArrayPub.publish(objectArray)
         textArrayPub.publish(textArray)
