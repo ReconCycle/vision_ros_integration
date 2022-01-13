@@ -36,30 +36,11 @@ def callbackReceivedData(msg):
     global receivedString
     receivedString = msg.data
 
-
-# Keep track of active frames - if object is duplicated, add a number to its name.
-#def trackActiveFramesAndColors(activeClasses, cameraTf):
-#    k = 0
-#    activeFrames = []
-#    activeColors = []
-#    for activeClass in activeClasses:
-#        try:
-#            activeColors.append(colorsDict[0][activeClass])
-#            if activeClass in activeFrames:
-#                k += 1
-#                activeClass = activeClass + str(k)
-#            k = 0
-#            activeFrames.append(activeClass + '_' + cameraTf)
-#        except Exception as e:
-#            pass    
-#    return activeFrames, activeColors
-
 # Keep track of active frames - if object is duplicated, add a number to its name.
 def trackActiveFramesAndColors(activeClasses,cameraTf):
     activeFrames = []
     activeColors = []
 
-    tmp_classes = []
     tmp_k = {} # Dictionary for keeping track of current index of each particular class (battery, hca_front, etc)
 
     for activeClass in activeClasses:
@@ -71,13 +52,11 @@ def trackActiveFramesAndColors(activeClasses,cameraTf):
             else:
                 tmp_k[activeClass] = 0
 
-                
-            #rospy.loginfo("{}".format(activeClass))
             activeFrames.append(activeClass+ '_' + cameraTf)
             
         except Exception as e:
             pass
-    #rospy.loginfo("end")
+    
     return activeFrames, activeColors
 
 def sendTfTransform(activeFrames, centers, quaternions, cameraTf):
@@ -179,7 +158,6 @@ if __name__ == '__main__':
     objectArrayPub = rospy.Publisher('/visualization_marker_array', MarkerArray, queue_size = 20)
     
     textArrayPub = rospy.Publisher('/visualization_marker_array', MarkerArray, queue_size = 20)
-    
 
     rate = rospy.Rate(freq)
 
