@@ -5,6 +5,8 @@ VisionPipeline:
     - obb_corners
     - obb_center
     - obb_rot_quat
+    - tracking_id
+    - tracking_score
   object_color_dict: 
     - {hca_front : [1.0, 0.0, 0.0, 0.5],
        hca_back : [0.7, 0.0, 0.0, 0.5],

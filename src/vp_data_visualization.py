@@ -163,6 +163,8 @@ if __name__ == '__main__':
 
     while not rospy.is_shutdown():
         cleanedString = parser.cleanString(receivedString, ['[', ']', '{', '}', '"'])
+        print(cleanedString)
+
         idxClassName, idxScore, idxCorners, idxCenter, idxQuat = parser.findIndexes(cleanedString, keywords)
         activeClasses = parser.parseClassNames(cleanedString, idxClassName, idxScore, keywords[0])
         corners = parser.parseCorners(cleanedString, idxCorners, idxCenter, keywords[2])
