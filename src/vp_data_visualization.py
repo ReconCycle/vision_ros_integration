@@ -7,8 +7,8 @@ from std_msgs.msg import String
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
 from tf import TransformBroadcaster
-import vp_data_parser as parser
-
+# import vp_data_parser as parser
+import json
 
 
 receivedString = ''
@@ -92,7 +92,7 @@ def prepareObjectArray(activeFrames, activeColors, activeEdges, cameraNs):
         marker.id = i
         marker.type = marker.CUBE
         marker.action = marker.ADD
-        marker.pose.position.z = objectScaleZ / 2
+        marker.pose.position.z = -objectScaleZ / 2
         marker.pose.orientation.w = 1.0
         marker.scale.x = activeEdges[i][0]
         marker.scale.y = activeEdges[i][1]
@@ -162,17 +162,32 @@ if __name__ == '__main__':
     rate = rospy.Rate(freq)
 
     while not rospy.is_shutdown():
-        cleanedString = parser.cleanString(receivedString, ['[', ']', '{', '}', '"'])
-        print(cleanedString)
+        #### Parsing code
+        # cleanedString = parser.cleanString(receivedString, ['[', ']', '{', '}', '"'])
+        # idxClassName, idxScore, idxCorners, idxCenter, idxQuat, idxTrackingId, idxTrackingScore = parser.findIndexes(cleanedString, keywords)
+        # activeClasses = parser.parseClassNames(cleanedString, idxClassName, idxScore, keywords[0])
+        # corners = parser.parseCorners(cleanedString, idxCorners, idxCenter, keywords[2])
+        # centers = parser.parseCenters(cleanedString, idxCenter, idxQuat, keywords[3])
+        # quaternions = parser.parseQuaternions(cleanedString, idxQuat, idxTrackingId, keywords[4])
+        #######################
 
-        idxClassName, idxScore, idxCorners, idxCenter, idxQuat = parser.findIndexes(cleanedString, keywords)
-        activeClasses = parser.parseClassNames(cleanedString, idxClassName, idxScore, keywords[0])
-        corners = parser.parseCorners(cleanedString, idxCorners, idxCenter, keywords[2])
-        centers = parser.parseCenters(cleanedString, idxCenter, idxQuat, keywords[3])
-        quaternions = parser.parseQuaternions(cleanedString, idxQuat, idxClassName, keywords[4])
+        if receivedString == '':
+            continue
+
+        detections_str = json.loads(receivedString)
+        activeClasses = []
+        corners = []
+        centers = []
+        quaternions = []
+        for detection in detections_str:
+            activeClasses.append(detection['class_name'])
+            corners.append(detection['obb_corners'])
+            centers.append(detection['obb_center'])
+            quaternions.append(detection['obb_rot_quat'])
+
+        print('Detected objects:', activeClasses)
         activeEdges = calculateObjectEdges(corners)
         activeFrames, activeColors = trackActiveFramesAndColors(activeClasses, cameraTf)
-
         sendTfTransform(activeFrames, centers, quaternions, cameraTf)
         
         objectArray = prepareObjectArray(activeFrames, activeColors, activeEdges, cameraNs)
