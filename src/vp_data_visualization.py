@@ -35,6 +35,7 @@ def readConfigParams():
 def callbackReceivedData(msg):
     global receivedString
     receivedString = msg.data
+    #print('Received detection string:', receivedString)
 
 # Keep track of active frames - if object is duplicated, add a number to its name.
 def trackActiveFramesAndColors(activeClasses,cameraTf):
@@ -73,11 +74,11 @@ def calculateObjectEdges(activeCorners):
         xEdge = math.sqrt((corners[1][0] - corners[2][0])**2 + (corners[1][1] - corners[2][1])**2)
         yEdge = math.sqrt((corners[0][0] - corners[1][0])**2 + (corners[0][1] - corners[1][1])**2)
         
-        #longEdge = max(xEdge,yEdge)
-        #shortEdge = min(xEdge,yEdge)
-        #activeEdges.append((shortEdge, longEdge))
+        longEdge = max(xEdge,yEdge)
+        shortEdge = min(xEdge,yEdge)
+        activeEdges.append((shortEdge, longEdge))
         
-        activeEdges.append((xEdge, yEdge))
+        # activeEdges.append((xEdge, yEdge))
 
     return activeEdges
 
@@ -92,7 +93,7 @@ def prepareObjectArray(activeFrames, activeColors, activeEdges, cameraNs):
         marker.id = i
         marker.type = marker.CUBE
         marker.action = marker.ADD
-        marker.pose.position.z = -objectScaleZ / 2
+        marker.pose.position.z = objectScaleZ / 2
         marker.pose.orientation.w = 1.0
         marker.scale.x = activeEdges[i][0]
         marker.scale.y = activeEdges[i][1]
@@ -180,12 +181,13 @@ if __name__ == '__main__':
         centers = []
         quaternions = []
         for detection in detections_str:
-            activeClasses.append(detection['class_name'])
-            corners.append(detection['obb_corners'])
-            centers.append(detection['obb_center'])
+            if detection['label'] != 'hca_back':
+                continue
+            activeClasses.append(detection['label'])
+            corners.append(detection['obb_corners_meters'])
+            centers.append(detection['obb_center_meters'])
             quaternions.append(detection['obb_rot_quat'])
 
-        print('Detected objects:', activeClasses)
         activeEdges = calculateObjectEdges(corners)
         activeFrames, activeColors = trackActiveFramesAndColors(activeClasses, cameraTf)
         sendTfTransform(activeFrames, centers, quaternions, cameraTf)
