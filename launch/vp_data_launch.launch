@@ -16,7 +16,14 @@
 
     <group ns="camera_1">
       <param name="vp_data_visualization/camera_tf" value="vision_table_zero"/>
+      <param name="vp_data_visualization/vision_lookup_topic" value="basler"/>
       <node name="vp_data_visualization" pkg="vision_ros_integration" type="vp_data_visualization.py" />
+    </group>
+    
+    <group ns="camera_2_realsense">
+      <param name="vp_data_visualization/camera_tf" value="panda_2/realsense"/>
+      <param name="vp_data_visualization/vision_lookup_topic" value="realsense"/>
+      <node name="vp_data_visualization_realsense" pkg="vision_ros_integration" type="vp_data_visualization.py" />
     </group>
 
     <?ignore
