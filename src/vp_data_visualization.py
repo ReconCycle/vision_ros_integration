@@ -85,33 +85,37 @@ def callbackReceivedGaps(msg):
 
 def callbackReceivedData(msg):
     # Receive message from /vision/basler/detections topic
-
+    global detectionTime
     global receivedDetections
     receivedDetections = msg.detections
+    detectionTime = time.time()
     #print('Received detection string:', receivedString)
         
         
 
-def trackActiveFramesAndColors(activeClasses,cameraTf):
+def trackActiveFramesAndColors(activeClasses,activeDetections, cameraTf):
     # Keep track of active frames - if object is duplicated, add a number to its name.
 
     activeFrames = []
     activeColors = []
 
-    tmp_k = {} # Dictionary for keeping track of current index of each particular class (battery, hca_front, etc)
-
-    for activeClass in activeClasses:
+    #tmp_k = {} # Dictionary for keeping track of current index of each particular class (battery, hca_front, etc)
+    #for activeClass in activeClasses:
+    
+    for i in range(0, len(activeClasses)):
         try:
-            activeColors.append(colorsDict[0][activeClass])
-            if activeClass in tmp_k.keys():
-                tmp_k[activeClass] += 1
-                activeClass = activeClass + str(tmp_k[activeClass])
-            else:
-                tmp_k[activeClass] = 0
-
-            activeFrames.append(activeClass+ '_' + cameraTf)
+            #id = activeDetections[i].id
+            #if activeClass in tmp_k.keys():
+            #    tmp_k[activeClass] += 1
+            #    activeClass = activeClass + str(tmp_k[activeClass])
+            #else:
+            #    tmp_k[activeClass] = 0
+            
+            activeColors.append(colorsDict[0][activeClasses[i]])
+            activeFrames.append(activeClasses[i]+'_'+str(activeDetections[i].id)+ '_' + cameraTf)
             
         except Exception as e:
+            rospy.loginfo("Vision ros integration: exception {}".format(e))
             pass
     
     return activeFrames, activeColors
@@ -120,11 +124,10 @@ def sendTfTransform(transformBroadcaster, activeFrames, centers, quaternions, ca
 
     for i in range(len(activeFrames)):
         #translation = (centers[i].x, centers[i][1], 0)
+        #rotation = (quaternions[i].x, quaternions[i].y, quaternions[i].z, quaternions[i].w)
         #transformBroadcaster.sendTransform(translation, quaternions[i], Time.now(), activeFrames[i], cameraTf)
         translation = (centers[i].x, centers[i].y, centers[i].z)   
-        #rotation = (quaternions[i].x, quaternions[i].y, quaternions[i].z, quaternions[i].w)
         rotation=quaternions[i]
-        
 
         transformBroadcaster.sendTransform(translation, rotation, Time.now(), activeFrames[i], cameraTf)
         
@@ -292,14 +295,16 @@ def obb_px_to_quat(px):
 
 if __name__ == '__main__':
     
+    rospy.init_node('vision_pipeline_data_visualization', anonymous = True)
+    
+    
+    
     min_publish_dt = 0.1 # seconds
-    max_detection_age_seconds = 2 # UNUSED CURRENTLY ! The message is more than N seconds behind current time, do not publish eet. 
+    
+    max_detection_age_seconds = 0.5
     
     last_publish_time = time.time()
     
-    
-    
-    rospy.init_node('vision_pipeline_data_visualization', anonymous = True)
 
     keywords, colorsDict, cameraTf, cameraNs, vision_lookup_topic = readConfigParams() 
     #rospy.loginfo("Listening to:") 
@@ -362,6 +367,7 @@ if __name__ == '__main__':
                 
             
                 activeClasses = []
+                activeDetections = []
                 corners = []
                 centers = []
                 quaternions = []
@@ -373,6 +379,7 @@ if __name__ == '__main__':
                         n = Label(detection.label).name
                         
                         activeClasses.append(n)
+                        activeDetections.append(detection)
                         #centers.append(detection.tf.translation)
                         tr = copy.deepcopy(detection.tf.translation)   # Table should be rotated in config but that is a lot more work
                         tr.y = 0.6 - tr.y
@@ -403,7 +410,7 @@ if __name__ == '__main__':
                         if isvalid:
                             #rospy.loginfo("Got detection")
                             activeClasses.append(Label(detection.label).name)
-                            
+                            activeDetections.append(detection)
                             # Convert pixels to world coordinates.
                             X,Y,Z = uv_to_XY(u = detection.center_px[0], v = detection.center_px[1], P=P, Z = None, get_z_from_rosparam = True)
                             #rospy.loginfo("X: {}, Y: {}, Z: {}".format(X,Y,Z))
@@ -430,8 +437,12 @@ if __name__ == '__main__':
 
                         #quaternions.append(detection.tf.rotation)
                 try: 
-                    activeFrames, activeColors = trackActiveFramesAndColors(activeClasses, name_addition)
+                    activeFrames, activeColors = trackActiveFramesAndColors(activeClasses, activeDetections, name_addition)
                     sendTfTransform(transformBroadcaster, activeFrames, centers, quaternions, cameraTf)
+                    
+                    ttt = time.time()
+                    if ttt- detectionTime > max_detection_age_seconds:
+                        receivedDetections = []
                     
                     if len(corners)>0:
                         activeEdges = calculateObjectEdges(corners)
